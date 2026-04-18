@@ -80,6 +80,10 @@ function App() {
       });
       
       const result = await response.json();
+      // Build full URL from backend
+      if (result.url) {
+        result.url = `http://localhost:3001${result.url}`;
+      }
       setRenderResult(result);
       updateProject({ status: 'completed' });
     } catch (error) {
