@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark text-white font-inter antialiased;
+  }
+  
+  /* RTL Support */
+  [dir="rtl"] {
+    @apply font-cairo;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-accent text-white px-6 py-3 rounded-lg transition-all font-bold disabled:opacity-50;
+  }
+  
+  .card {
+    @apply bg-card border border-border rounded-xl p-6 transition-all hover:border-accent/40;
+  }
+  
+  .input-field {
+    @apply bg-card border border-border focus:border-primary outline-none p-3 rounded-lg w-full transition-all;
+  }
+}

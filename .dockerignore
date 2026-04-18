@@ -1,0 +1,16 @@
+# Docker ignore patterns
+.git
+.gitignore
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+LICENSE
+Dockerfile*
+docker-compose*
+.env*
+dist
+build
+coverage
+.vscode
+.idea

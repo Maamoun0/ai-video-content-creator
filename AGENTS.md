@@ -1,4 +1,3 @@
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Planning for: [AI Content Creator Tool](file:///c:/Users/Maamoun/Downloads/antygravity/aicontant/my-app/specs/001-ai-content-creator/plan.md)
 <!-- SPECKIT END -->
