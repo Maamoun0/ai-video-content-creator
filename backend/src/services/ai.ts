@@ -6,46 +6,47 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_STUDIO_API_KEY || "");
 
 export async function generateScript(idea: string, language: string, duration: number) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
-    You are a professional video script writer and content creator.
-    Generate a highly engaging video script based on this idea: "${idea}"
-    
-    Requirements:
-    - Language: ${language === 'ar' ? 'Arabic' : 'English'}
-    - Target Duration: ${duration} seconds
-    - Format: JSON
-    - Structure: 
-      {
-        "title": "Catchy Title",
-        "hook": "Strong opening hook",
-        "scenes": [
-          {
-            "timestamp": "0:00",
-            "visual_description": "Detailed visual description for image generation",
-            "narration": "The exact words to be spoken by the voiceover",
-            "onscreen_text": "Brief text overlay"
-          }
-        ],
-        "conclusion": "Final CTA or closing thought"
-      }
-    
-    Make sure the narration matches the duration closely (about 130-150 words per minute).
-    Provide ONLY the raw JSON.
-  `;
+You are a professional video script writer.
+Generate a video script for this idea: "${idea}"
 
+Requirements:
+- Language: ${language === 'ar' ? 'Arabic' : 'English'}
+- Target Duration: ${duration} seconds
+- Return ONLY valid JSON (no markdown, no code fences)
+- JSON structure:
+{
+  "title": "Catchy Title",
+  "hook": "Strong opening hook",
+  "scenes": [
+    {
+      "timestamp": "0:00",
+      "visual_description": "Description of what should appear on screen",
+      "narration": "Exact voiceover text",
+      "onscreen_text": "Brief overlay text"
+    }
+  ],
+  "conclusion": "Closing thought or CTA"
+}
+
+Keep narration at ~130-150 words per minute to match the duration.
+Return ONLY the JSON object, nothing else.`;
+
+  console.log("Calling Gemini 2.5 Flash...");
   const result = await model.generateContent(prompt);
   const response = await result.response;
   const text = response.text();
-  
-  // Extract JSON from potential markdown blocks or raw text
-  const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+  console.log("Gemini raw response length:", text.length);
+
+  // Clean up response - strip markdown fences if present
+  const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.error("Raw AI Text:", text);
-    throw new Error("Failed to parse AI response as JSON");
+    console.error("Could not extract JSON from:", text.substring(0, 200));
+    throw new Error("AI did not return valid JSON");
   }
-  
+
   return JSON.parse(jsonMatch[0]);
 }

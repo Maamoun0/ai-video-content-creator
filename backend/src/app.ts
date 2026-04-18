@@ -43,4 +43,7 @@ app.listen(port, () => {
   console.log(`Backend listening at http://localhost:${port}`);
 });
 
+// Force event loop to stay alive (temporary workaround for environment issue)
+setInterval(() => {}, 1000 * 60 * 60);
+
 export default app;
