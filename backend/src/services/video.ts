@@ -8,56 +8,45 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_STUDIO_API_KEY || "");
 
-// Generate an image for a scene using Imagen
-async function generateSceneImage(description: string, index: number, outputDir: string): Promise<string> {
-  const outputPath = path.join(outputDir, `scene_${index}.png`);
+// Generate an image for a scene using Pollinations AI (free, no API key needed)
+async function generateSceneImage(description: string, index: number, outputDir: string, width: number, height: number): Promise<string> {
+  const outputPath = path.join(outputDir, `scene_${index}.jpg`);
   
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${process.env.GOOGLE_AI_STUDIO_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instances: [{ prompt: description }],
-          parameters: { sampleCount: 1, aspectRatio: "16:9" }
-        })
-      }
-    );
-
-    const data = await response.json();
+    const safePrompt = encodeURIComponent(`Cinematic, professional photography, ${description}. High quality, 4K, dramatic lighting.`);
+    // Using pollinations.ai for free text-to-image generation with specific width and height
+    const imageUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=${width}&height=${height}&nologo=true`;
     
-    if (data.predictions && data.predictions[0]?.bytesBase64Encoded) {
-      const imageBuffer = Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64');
-      fs.writeFileSync(outputPath, imageBuffer);
+    console.log(`  Downloading scene ${index + 1} from Pollinations AI...`);
+    const response = await fetch(imageUrl);
+    
+    if (response.ok) {
+      const buffer = await response.arrayBuffer();
+      fs.writeFileSync(outputPath, Buffer.from(buffer));
       console.log(`  ✅ Scene ${index + 1} image generated`);
       return outputPath;
     } else {
-      console.error(`  ⚠️ Scene ${index + 1}: Imagen returned no image, using fallback`);
-      // Create a simple colored placeholder
-      return createFallbackImage(outputPath, description, index);
+      throw new Error(`Status ${response.status}`);
     }
   } catch (err: any) {
     console.error(`  ⚠️ Scene ${index + 1} image generation failed: ${err.message}`);
-    return createFallbackImage(outputPath, description, index);
+    return createFallbackImage(outputPath, description, index, width, height);
   }
 }
 
 // Create a simple fallback image using FFmpeg
-function createFallbackImage(outputPath: string, text: string, index: number): string {
+function createFallbackImage(outputPath: string, text: string, index: number, width: number, height: number): string {
   const colors = ['#1a0533', '#0a1628', '#1c0a00', '#001a1a'];
   const color = colors[index % colors.length];
   try {
+    // Generate solid color without text first (since drawtext requires font files to be reliable on Windows)
     execSync(
-      `ffmpeg -y -f lavfi -i color=c=${color.replace('#','')}:s=1920x1080:d=1 -vframes 1 "${outputPath}"`,
+      `ffmpeg -y -f lavfi -i color=c=${color.replace('#','')}:s=${width}x${height}:d=1 -vframes 1 "${outputPath}"`,
       { stdio: 'pipe' }
     );
   } catch {
-    // If FFmpeg fails, create a minimal PNG programmatically
-    const pngHeader = Buffer.from([
-      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    ]);
-    fs.writeFileSync(outputPath, pngHeader);
+    // If FFmpeg fails, create a minimal dummy file
+    fs.writeFileSync(outputPath, "dummy data");
   }
   return outputPath;
 }
@@ -82,7 +71,7 @@ export async function renderVideo(project: any): Promise<{ url: string; filename
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const prompt = `Cinematic, professional photography, ${scene.visual_description}. High quality, 4K, dramatic lighting.`;
-    const imgPath = await generateSceneImage(prompt, i, outputDir);
+    const imgPath = await generateSceneImage(prompt, i, outputDir, width, height);
     imagePaths.push(imgPath);
   }
 
