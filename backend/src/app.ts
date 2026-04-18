@@ -20,7 +20,21 @@ import { generateScript } from './services/ai';
 
 // ... (existing middleware)
 
+import { renderVideo } from './services/video';
+
 // Project Routes
+app.post('/api/projects/render', async (req, res) => {
+  try {
+    const { project } = req.body;
+    console.log(`Rendering project: ${project.id}...`);
+    const result = await renderVideo(project);
+    res.json(result);
+  } catch (error: any) {
+    console.error("Render error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/projects/generate-script', async (req, res) => {
   try {
     const { idea, language, durationSeconds } = req.body;

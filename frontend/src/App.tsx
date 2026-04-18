@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Video, Sparkles, Layout, History, Settings, Play, ChevronRight, Languages } from 'lucide-react';
+import { Video, Sparkles, Layout, History, Settings, Play, ChevronRight, Languages, Download } from 'lucide-react';
 import { useUserStore } from './stores/userStore';
 import { useProjectStore } from './stores/projectStore';
 
@@ -65,23 +65,59 @@ function App() {
     }
   };
 
+  const [isRendering, setIsRendering] = React.useState(false);
+  const [renderResult, setRenderResult] = React.useState<any>(null);
+
+  const handleRender = async () => {
+    setIsRendering(true);
+    setCurrentStep(5);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/projects/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: currentProject })
+      });
+      
+      const result = await response.json();
+      setRenderResult(result);
+      updateProject({ status: 'completed' });
+    } catch (error) {
+      console.error("Render failed:", error);
+      alert("فشلت عملية الرندر. يرجى المحاولة مرة أخرى.");
+      setCurrentStep(4);
+    } finally {
+      setIsRendering(false);
+    }
+  };
+
   if (view === 'creator') {
     return (
       <div className="min-h-screen bg-dark text-white font-inter" dir="rtl">
         <nav className="border-b border-border bg-card p-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
             <button 
-              disabled={isGenerating}
+              disabled={isGenerating || isRendering}
               onClick={() => setView('landing')} 
               className="text-white/50 hover:text-white transition-colors disabled:opacity-0">
               ← العودة للرئيسية
             </button>
             <div className="flex items-center gap-4">
               <span className="px-3 py-1 rounded bg-primary/20 text-primary border border-primary/30">
-                المرحلة {currentStep}: {currentStep === 1 ? 'الإعداد' : currentStep === 2 ? 'الفكرة' : 'السكريبت'}
+                المرحلة {currentStep}: {
+                  currentStep === 1 ? 'الإعداد' : 
+                  currentStep === 2 ? 'الفكرة' : 
+                  currentStep === 3 ? 'السكريبت' : 
+                  currentStep === 4 ? 'الأصول' : 'الرندر'
+                }
               </span>
               <h2 className="font-cairo font-bold">
-                {currentStep === 1 ? 'إعداد الفيديو' : currentStep === 2 ? 'ما هي فكرتك؟' : 'سكريبت الذكاء الاصطناعي'}
+                {
+                  currentStep === 1 ? 'إعداد الفيديو' : 
+                  currentStep === 2 ? 'ما هي فكرتك؟' : 
+                  currentStep === 3 ? 'سكريبت الذكاء الاصطناعي' : 
+                  currentStep === 4 ? 'تجميع لقطات الفيديو' : 'جاري إنتاج الفيديو'
+                }
               </h2>
             </div>
             <div className="w-20"></div>
@@ -220,7 +256,106 @@ function App() {
 
                     <div className="pt-10 flex justify-end gap-4">
                         <button onClick={() => setCurrentStep(2)} className="px-8 py-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all">تعديل الفكرة</button>
-                        <button className="btn-primary px-12 py-4">الموافقة والبدء بالمونتاج ←</button>
+                        <button 
+                          onClick={handleNext}
+                          className="btn-primary px-12 py-4">الموافقة والبدء بالمونتاج ←</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-12 animate-in fade-in slide-in-for-bottom-6 duration-700">
+                <header className="space-y-4">
+                  <h1 className="text-4xl font-black font-cairo">جاري البحث عن اللقطات</h1>
+                  <p className="text-white/40">نقوم الآن بجمع الأصول البصرية (فيديوهات وصور) المناسبة لكل مشهد في السكريبت.</p>
+                </header>
+
+                <div className="grid gap-6">
+                  {currentProject?.script?.scenes.map((scene: any, i: number) => (
+                    <div key={i} className="card bg-white/5 border-white/10 p-6 flex flex-col md:flex-row gap-6 items-center">
+                      <div className="flex-1 space-y-3 text-right w-full">
+                        <div className="flex justify-between items-center text-xs text-primary font-bold">
+                          <span>المشهد {i + 1}</span>
+                          <span className="text-white/30">{scene.timestamp}</span>
+                        </div>
+                        <p className="text-sm text-white/80 leading-relaxed line-clamp-2">
+                          {scene.narration}
+                        </p>
+                        <div className="text-xs text-white/40 italic">
+                          🔍 {scene.visual_description}
+                        </div>
+                      </div>
+                      
+                      <div className="w-full md:w-48 aspect-video bg-white/5 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 group cursor-pointer hover:border-primary/50 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
+                          <Layout className="w-5 h-5 text-white/20" />
+                        </div>
+                        <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter">Asset Discovery...</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-8 border-t border-border flex justify-between items-center">
+                  <button onClick={handlePrev} className="text-white/40 hover:text-white">تعديل السكريبت</button>
+                  <button 
+                    onClick={handleRender}
+                    className="btn-primary px-10 py-4 flex items-center gap-3 shadow-xl shadow-primary/20">
+                    بدء عملية الرندر النهائي <Play className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="space-y-12 text-center py-12">
+                {isRendering ? (
+                  <div className="space-y-10">
+                    <div className="relative w-48 h-48 mx-auto">
+                      <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Video className="w-12 h-12 text-primary pulse" />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-3xl font-black font-cairo">جاري رندر الفيديو...</h3>
+                      <p className="text-white/40 max-w-sm mx-auto">
+                        نقوم الآن بدمج اللقطات، إضافة الموسيقى، وضبط الانتقالات باستخدام FFmpeg.
+                      </p>
+                      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden max-w-md mx-auto">
+                        <div className="h-full bg-primary animate-progress-fast"></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="animate-in zoom-in-95 duration-700 space-y-10">
+                    <header className="space-y-2">
+                       <span className="text-primary font-bold tracking-widest uppercase text-xs">Production Complete</span>
+                       <h1 className="text-4xl font-black font-cairo">الفيديو الخاص بك جاهز!</h1>
+                    </header>
+
+                    <div className="card bg-black border-white/10 p-2 overflow-hidden aspect-video shadow-2xl shadow-primary/10">
+                      <video 
+                        src={renderResult?.url} 
+                        controls
+                        autoPlay
+                        className="w-full h-full rounded-lg"
+                      />
+                    </div>
+
+                    <div className="flex justify-center gap-4">
+                       <a 
+                         href={renderResult?.url}
+                         download={renderResult?.filename || 'video_1080p.mp4'}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="btn-primary px-10 py-4 flex items-center gap-3 no-underline">
+                          تحميل الفيديو (1080p) <Download className="w-5 h-5" />
+                       </a>
+                       <button onClick={() => { setView('landing'); setCurrentStep(1); setRenderResult(null); }} className="px-10 py-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all">العودة للرئيسية</button>
                     </div>
                   </div>
                 )}
