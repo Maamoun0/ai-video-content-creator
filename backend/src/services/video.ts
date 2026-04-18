@@ -12,26 +12,37 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_STUDIO_API_KEY || "")
 async function generateSceneImage(description: string, index: number, outputDir: string, width: number, height: number): Promise<string> {
   const outputPath = path.join(outputDir, `scene_${index}.jpg`);
   
-  try {
-    const safePrompt = encodeURIComponent(`Cinematic, professional photography, ${description}. High quality, 4K, dramatic lighting.`);
-    // Using pollinations.ai for free text-to-image generation with specific width and height
-    const imageUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=${width}&height=${height}&nologo=true`;
-    
-    console.log(`  Downloading scene ${index + 1} from Pollinations AI...`);
-    const response = await fetch(imageUrl);
-    
-    if (response.ok) {
-      const buffer = await response.arrayBuffer();
-      fs.writeFileSync(outputPath, Buffer.from(buffer));
-      console.log(`  ✅ Scene ${index + 1} image generated`);
-      return outputPath;
-    } else {
-      throw new Error(`Status ${response.status}`);
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const safePrompt = encodeURIComponent(`Cinematic, professional photography, ${description}. High quality, 4K, dramatic lighting.`);
+      const seed = Math.floor(Math.random() * 100000);
+      // Using pollinations.ai for free text-to-image generation with specific width and height
+      const imageUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+      
+      console.log(`  Downloading scene ${index + 1} from Pollinations AI (Retries left: ${retries - 1})...`);
+      const response = await fetch(imageUrl);
+      
+      if (response.ok) {
+        const buffer = await response.arrayBuffer();
+        fs.writeFileSync(outputPath, Buffer.from(buffer));
+        console.log(`  ✅ Scene ${index + 1} image generated`);
+        return outputPath;
+      } else if (response.status === 429) {
+        console.warn(`  ⏳ Rate limited (429). Waiting 3 seconds before retry...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        retries--;
+      } else {
+        throw new Error(`Status ${response.status}`);
+      }
+    } catch (err: any) {
+      console.error(`  ⚠️ Scene ${index + 1} image generation error: ${err.message}`);
+      if (retries <= 1) return createFallbackImage(outputPath, description, index, width, height);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      retries--;
     }
-  } catch (err: any) {
-    console.error(`  ⚠️ Scene ${index + 1} image generation failed: ${err.message}`);
-    return createFallbackImage(outputPath, description, index, width, height);
   }
+  return createFallbackImage(outputPath, description, index, width, height);
 }
 
 // Create a simple fallback image using FFmpeg
