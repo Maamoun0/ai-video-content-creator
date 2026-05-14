@@ -1,6 +1,5 @@
 # Dynamic Video Content Creator
 
-
 Dynamic Video Content Creator allows you to transform ideas into professional videos in minutes using advanced content generation techniques.
 
 ---
@@ -24,11 +23,4 @@ This system automates the visual content creation process. It converts a simple 
            
             - ---
 
-            ## Tech Stack
-
-            - **Frontend**: Next.js, Tailwind CSS.
-            - - **Backend**: Node.js.
-             
-              - ---
-              Created by Ahmed Maamoun
-              
+            *This project was developed by [Maamoun0](https://github.com/Maamoun0) and its initial structure was assisted by AI.*
