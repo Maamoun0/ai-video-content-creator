@@ -23,4 +23,5 @@ This system automates the visual content creation process. It converts a simple 
            
             - ---
 
-            *This project was developed by [Maamoun0](https://github.com/Maamoun0) and its initial structure was assisted by AI.*
+            Created by Ahmed Maamoun
+            
