@@ -15,6 +15,10 @@ This system automates the visual content creation process. It converts a simple 
       - ---
 
       ## Features
+   
+      ---
+      Created by Ahmed Maamoun
+      
 
       - **Advanced Tech**: Uses the latest techniques for script formulation.
       - - **Automated Assets**: Generates visuals consistent with the content.
